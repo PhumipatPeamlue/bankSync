@@ -73,21 +73,25 @@ type StorageInMemory struct {
 }
 
 func (s StorageInMemory) Save(tran *Transaction) {
-	balance := 0.0
+	s.ensureBalanceEntryExists(tran.Id)
 
 	switch tran.Operation {
 	case "deposit":
-		balance += tran.Amount
+		s.storage[tran.Id] += tran.Amount
 	case "withdraw":
-		balance -= tran.Amount
+		s.storage[tran.Id] -= tran.Amount
 	}
+}
 
-	s.storage[tran.Id] = balance
+func (s StorageInMemory) ensureBalanceEntryExists(id string) {
+	if _, ok := s.storage[id]; !ok {
+		s.storage[id] = 0.0
+	}
 }
 
 func (s StorageInMemory) Report() {
 	for id, balance := range s.storage {
-		fmt.Println(id, balance)
+		fmt.Printf("%s %.2f\n", id, balance)
 	}
 }
 
