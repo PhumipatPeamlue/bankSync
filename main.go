@@ -87,7 +87,7 @@ func (s StorageInMemory) Save(tran *Transaction) {
 
 func (s StorageInMemory) Report() {
 	for id, balance := range s.storage {
-		fmt.Println(id, balance)
+		fmt.Printf("%s %.2f\n", id, balance)
 	}
 }
 
