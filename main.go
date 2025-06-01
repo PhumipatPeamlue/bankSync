@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	numJobs    = 100000000
+	numWorkers = 2
+)
+
 func main() {
 	defer measureTime(time.Now())
 
@@ -17,29 +22,64 @@ func main() {
 	storage := NewStorageInMemory()
 
 	// read logs from the file and save each balance in storage
-	ReadTransactionLog(filepath, storage)
+	// ReadTransactionLog(filepath, storage)
+	{
+		file, err := os.Open(filepath)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+
+		jobs := make(chan string, numJobs)
+		results := make(chan *Transaction, numJobs)
+		numLines := 0
+
+		for scanner.Scan() {
+			jobs <- scanner.Text()
+			numLines++
+		}
+		close(jobs)
+
+		for range numWorkers {
+			go worker(jobs, results)
+		}
+
+		for range numLines {
+			tran := <-results
+			storage.Save(tran)
+		}
+	}
 
 	// print the output
 	storage.Report()
 }
 
-func ReadTransactionLog(filePath string, storage *StorageInMemory) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		panic(err)
+func worker(jobs <-chan string, results chan<- *Transaction) {
+	for job := range jobs {
+		results <- ParseTransaction(job)
+
 	}
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		tran := ParseTransaction(line)
-
-		storage.Save(tran)
-	}
-
-	file.Close()
 }
+
+// func ReadTransactionLog(filePath string, storage *StorageInMemory) {
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	scanner := bufio.NewScanner(file)
+
+// 	for scanner.Scan() {
+// 		line := scanner.Text()
+// 		tran := ParseTransaction(line)
+
+// 		storage.Save(tran)
+// 	}
+
+// 	file.Close()
+// }
 
 type Transaction struct {
 	Id        string
