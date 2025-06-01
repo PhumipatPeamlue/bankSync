@@ -37,6 +37,8 @@ func ReadTransactionLog(filePath string, storage *StorageInMemory) {
 
 		storage.Save(tran)
 	}
+
+	file.Close()
 }
 
 type Transaction struct {
